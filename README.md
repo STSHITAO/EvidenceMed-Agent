@@ -1,233 +1,271 @@
-# Medical-RAG
+# EvidenceMed-VL
 
-## 项目简介
-针对医疗影像辅助分析与专业知识问答需求，本项目实现了基于视觉语言模型（VLM）的 Medical-RAG 系统。系统支持上传医学影像与自然语言提问，自动检索权威医学知识并生成循证解答。
+面向医疗影像辅助分析与专业知识问答场景的多模态 Medical-RAG 系统。项目支持上传医学影像与自然语言问题，联合检索医学指南文本和参考影像证据，并基于视觉语言模型生成具备循证依据的专业解答。
 
-## 核心能力
-- 多模态混合指令微调：基于自建医学文本与影像（MedVQA）问答指令数据集，使用 LoRA 微调 Qwen3-VL-8B-Instruct。
-- 高精度医学知识检索：权威指南切块入库 Milvus，统一通过 vLLM OpenAI 接口调用 Qwen3-VL-Embedding-2B 与 Qwen3-VL-Reranker-2B。
-- 多阶段联合推理：多路召回 + 语义精排 + 图文联合推理，提升 RAG 证据质量与图文一致性。
+## 项目概览
+
+本项目围绕“医疗影像 + 医学知识检索 + 多模态生成”构建完整链路，核心能力包括：
+
+- 基于 `LLaMA-Factory` 对 `Qwen3-VL-8B-Instruct` 进行 `LoRA` 微调
+- 使用 `Qwen3-VL-Embedding-2B` 构建图文统一向量空间
+- 将医学指南文本与参考影像统一入库到 `Milvus`
+- 引入 `HNSW + BM25` 的 `dense+sparse` 混合检索
+- 使用 `HyDE` 作为召回增强分支，并通过 `RRF` 融合多路结果
+- 使用 `Qwen3-VL-Reranker-2B` 对候选文本与参考影像进行重排
+- 基于 `vLLM` 服务化部署 embedding、reranker 与 VLM 推理链路
+
+## 系统特点
+
+### 1. 多模态知识入库
+
+- 文本知识：支持 `.txt`、`.md`、`.pdf`
+- 影像知识：支持 `.png`、`.jpg`、`.jpeg`、`.bmp`、`.webp`、`.tif`、`.tiff`
+- PDF 处理链路支持：
+  - `PyMuPDF` 版面块提取
+  - `pdfplumber` 表格抽取
+  - `PaddleOCR` 扫描版 PDF OCR 回退
+  - 页眉页脚和页码去噪
+  - 标题/段落/表格级分段后再做滑窗切块
+
+### 2. 混合检索
+
+- 稠密检索：`Qwen3-VL-Embedding-2B + Milvus`
+- 稀疏检索：`BM25`
+- 召回增强：
+  - 原始查询
+  - 查询改写
+  - 图文联合查询
+  - `HyDE` 假设文档生成
+- 多路结果使用 `RRF` 融合
+
+### 3. 图文联合推理
+
+- 使用 `Qwen3-VL-Reranker-2B` 对文本证据与参考影像进行语义重排
+- 将用户影像、检索证据与问题共同输入 `Qwen3-VL`
+- 输出带有证据支撑的多模态问答结果
 
 ## 目录结构
+
 ```text
 Medical-RAG/
-├── app.py
 ├── api.py
+├── app.py
 ├── build_index.py
 ├── config/
 │   ├── settings.yaml
-│   └── settings.lite.yaml
-├── config.py
+│   ├── settings.lite.yaml
+│   ├── settings.fastapi.yaml
+│   └── settings.e2e.yaml
 ├── data/
 │   └── knowledge/
-├── pipeline.py
-├── prompts.py
+│       └── images/
 ├── query_once.py
-├── schemas.py
-├── streamlit_app.py
 ├── scripts/
 │   ├── build_index.py
 │   ├── download_qwen_models.py
+│   ├── e2e_test.py
 │   ├── query_once.py
 │   ├── run_api.py
 │   ├── run_app.py
+│   ├── run_dual_gpu_stack.sh
 │   ├── run_streamlit.py
-│   └── serve_vllm.sh
+│   ├── serve_vllm.sh
+│   └── validate_stack.py
 ├── src/medical_rag/
-│   ├── app.py
 │   ├── api_server.py
+│   ├── app.py
 │   ├── config.py
 │   ├── pipeline.py
 │   ├── prompts.py
+│   ├── schemas.py
 │   ├── retrieval/
 │   │   ├── embedding.py
 │   │   ├── reranker.py
 │   │   ├── retriever.py
+│   │   ├── sparse.py
 │   │   └── vector_store.py
+│   ├── utils/
+│   │   └── text_chunker.py
 │   └── vlm/
 │       └── qwen_vl.py
+├── streamlit_app.py
 └── requirements.txt
 ```
 
 ## 环境准备
+
 ```bash
 cd /root/autodl-tmp/Medical/Medical-RAG
 pip install -r requirements.txt
 ```
 
-## 1) 从魔塔下载 Qwen 检索模型
+如果需要处理扫描版 PDF，除 `paddleocr` 外，还需要安装与你环境匹配的 `paddlepaddle`。
+
+```bash
+pip install paddleocr
+pip install paddlepaddle
+```
+
+## 数据组织
+
+建议按下面方式准备知识库：
+
+```text
+data/
+└── knowledge/
+    ├── guideline_a.pdf
+    ├── guideline_b.md
+    └── images/
+        ├── case_001.png
+        ├── case_001.txt
+        ├── case_002.jpg
+        └── case_002.md
+```
+
+说明：
+
+- 文本知识会被解析后切块入库
+- 参考影像会以单张图像为知识项入库
+- 若影像旁边存在同名 `.txt` 或 `.md` 文件，系统会将“图像 + 描述文本”作为混合模态知识项编码
+
+## 下载模型
+
 ```bash
 python scripts/download_qwen_models.py --cache-dir /root/autodl-tmp/Qwen
 ```
 
-默认下载到：
-- `/root/autodl-tmp/Qwen/Qwen/Qwen3-VL-Embedding-2B`
-- `/root/autodl-tmp/Qwen/Qwen/Qwen3-VL-Reranker-2B`
+默认下载：
 
-若根盘空间不足，可改为下载到内存盘（重启后会丢失）：
-```bash
-python scripts/download_qwen_models.py --cache-dir /dev/shm/Qwen
-```
+- `Qwen3-VL-Embedding-2B`
+- `Qwen3-VL-Reranker-2B`
 
-## 2) 启动 vLLM 服务
-`scripts/serve_vllm.sh` 支持三种服务模式：`embed` / `rerank` / `vlm`。
+## 启动 vLLM 服务
+
+`scripts/serve_vllm.sh` 支持三种服务模式：`embed` / `rerank` / `vlm`
 
 ```bash
-# Embedding 服务（默认 8001）
+# Embedding 服务，默认 8001
 CUDA_VISIBLE_DEVICES=0 bash scripts/serve_vllm.sh embed
 
-# Reranker 服务（默认 8002）
+# Reranker 服务，默认 8002
 CUDA_VISIBLE_DEVICES=0 bash scripts/serve_vllm.sh rerank
 
-# 如果 reranker 下载在 /dev/shm，指定模型路径
-CUDA_VISIBLE_DEVICES=0 RERANK_MODEL_PATH=/dev/shm/Qwen/Qwen/Qwen3-VL-Reranker-2B bash scripts/serve_vllm.sh rerank
-
-# VLM 服务（默认 8003，使用已合并 LoRA 的模型）
-CUDA_VISIBLE_DEVICES=0 bash scripts/serve_vllm.sh vlm
+# VLM 服务，默认 8003
+CUDA_VISIBLE_DEVICES=1 bash scripts/serve_vllm.sh vlm
 ```
 
-说明：
-- 单卡显存不足时，建议分时启动服务；双卡建议使用 `run_dual_gpu_stack.sh` 固定分卡部署。
-- `vlm` 走 OpenAI 兼容接口 `/v1/chat/completions`；retrieval 走 `/v1/embeddings` 与 `/v1/rerank`。
-- 脚本已对 `embed/rerank` 默认开启 `--enforce-eager`（更稳），如需关闭可设 `EMBED_ENFORCE_EAGER=0` 或 `RERANK_ENFORCE_EAGER=0`。
+如果是双卡，推荐使用一键脚本：
 
-### 双卡并行部署（推荐）
-若为双卡机器，推荐将检索侧与 VLM 分卡部署：
-- `GPU0`：`embedding + reranker`
-- `GPU1`：`vlm`
-
-可直接使用一键脚本：
 ```bash
-cd /root/autodl-tmp/Medical/Medical-RAG
-
-# 启动（默认 RETRIEVAL_GPU=0, VLM_GPU=1）
 bash scripts/run_dual_gpu_stack.sh start
-
-# 查看状态
 bash scripts/run_dual_gpu_stack.sh status
-
-# 停止
 bash scripts/run_dual_gpu_stack.sh stop
 ```
 
-可通过环境变量覆盖：
+## 构建索引
+
+构建知识库索引时，会同时完成：
+
+- 文本/PDF 解析
+- OCR 回退
+- 文本切块
+- 图像知识项构建
+- 向量化写入 `Milvus`
+- 稀疏语料写入本地 `BM25` 语料文件
+
 ```bash
-RETRIEVAL_GPU=1 VLM_GPU=0 API_PORT=9000 bash scripts/run_dual_gpu_stack.sh restart
-```
-
-说明：
-- `run_dual_gpu_stack.sh` 默认使用“已合并 LoRA”的 VLM 模型目录，并默认开启 `VLM_SKIP_MM_PROFILING=1`。
-- 若你要切回“运行时 LoRA 挂载”模式，可显式传入：
-```bash
-VLM_LORA_PATH=/root/autodl-tmp/Medical/LlamaFactory/saves/Qwen3-VL-8B-Instruct/lora/train_2026-01-22-16-14-48 \
-bash scripts/run_dual_gpu_stack.sh restart
-```
-
-## 3) 配置说明
-默认配置文件：`config/settings.yaml`
-
-- `embedding.provider=api`，默认指向 `http://127.0.0.1:8001/v1/embeddings`
-- `reranker.provider=api`，默认指向 `http://127.0.0.1:8002/v1/rerank`
-- `vlm.backend=vllm_openai`，默认指向 `http://127.0.0.1:8003/v1/chat/completions`
-
-`vlm` 关键字段：
-- `vlm.backend`：`vllm_openai`
-- `vlm.model_name`：请求时使用的模型名（需与 vLLM `--served-model-name` 对齐）
-- `vlm.api_base_url`：vLLM 服务地址
-- `vlm.api_chat_path`：默认 `/v1/chat/completions`
-
-## 4) 知识入库（切块 + 向量化 + Milvus）
-```bash
-# 顶层入口
+# 标准配置
 python build_index.py --config config/settings.yaml --drop-old
 
-# 或 scripts 入口
-python scripts/build_index.py --config config/settings.yaml --drop-old
-```
-
-本地 milvus-lite 调试可使用：
-```bash
-# 顶层入口
+# Milvus Lite 本地调试
 python build_index.py --config config/settings.lite.yaml --drop-old
-
-# 或 scripts 入口
-python scripts/build_index.py --config config/settings.lite.yaml --drop-old
 ```
 
-## 5) 启动系统（上传影像 + 提问）
+## 启动系统
+
+### Gradio
+
 ```bash
-# 顶层入口
 python app.py --config config/settings.yaml
-
-# 或 scripts 入口
-python scripts/run_app.py --config config/settings.yaml
 ```
 
-默认地址：`http://0.0.0.0:7860`
+默认地址：
 
-## 6) FastAPI + Streamlit 交互界面（推荐）
-先启动后端 API，再启动 Streamlit 前端。
-推荐使用 `config/settings.fastapi.yaml`（Milvus 使用本地 lite DB，不依赖独立 Milvus 服务）。
+- `http://0.0.0.0:7860`
+
+### FastAPI + Streamlit
 
 ```bash
-# 1) 启动 FastAPI 后端（默认 9000）
+# 启动 API
 python api.py --config config/settings.fastapi.yaml --host 0.0.0.0 --port 9000
-# 或
-python scripts/run_api.py --config config/settings.fastapi.yaml --host 0.0.0.0 --port 9000
 
-# 2) 启动 Streamlit 前端（默认 8501）
+# 启动 Streamlit
 python scripts/run_streamlit.py --host 0.0.0.0 --port 8501 --api-base http://127.0.0.1:9000
 ```
 
 访问地址：
-- FastAPI 文档：`http://<服务器IP>:9000/docs`
-- Streamlit 页面：`http://<服务器IP>:8501`
 
-命令行单次问答：
+- FastAPI 文档：`http://<server-ip>:9000/docs`
+- Streamlit 页面：`http://<server-ip>:8501`
+
+### 命令行单次问答
+
 ```bash
-# 顶层入口
-python query_once.py --config config/settings.yaml --image /path/to/image.png --question "该影像提示什么异常？"
-
-# 或 scripts 入口
-python scripts/query_once.py --config config/settings.yaml --image /path/to/image.png --question "该影像提示什么异常？"
+python query_once.py \
+  --config config/settings.yaml \
+  --image /path/to/image.png \
+  --question "请结合影像与证据说明主要异常及建议。"
 ```
 
-## 7) 一键连通性验证
-使用校验脚本检查 embedding / rerank / milvus：
+## 检索与推理流程
+
+1. 解析医学指南、PDF 与参考影像，构建多模态知识库
+2. 使用 `Qwen3-VL-Embedding-2B` 对文本块、影像知识项和查询进行统一编码
+3. 通过 `Milvus HNSW` 与 `BM25` 同时执行 `dense+sparse` 混合检索
+4. 引入原始查询、查询改写、图文联合查询和 `HyDE` 分支进行多路召回
+5. 使用 `RRF` 融合多路结果
+6. 使用 `Qwen3-VL-Reranker-2B` 对候选证据进行精排
+7. 将用户影像、问题、文本证据和参考影像共同输入 `Qwen3-VL` 生成答案
+
+## 验证脚本
 
 ```bash
-# 仅验证 embedding API（需先启动 embed 服务）
+# 检查 embedding 服务
 python scripts/validate_stack.py --config config/settings.yaml --checks embed
 
-# 仅验证 rerank API（需先启动 rerank 服务）
+# 检查 rerank 服务
 python scripts/validate_stack.py --config config/settings.yaml --checks rerank
 
-# 验证 milvus-lite 连通性
+# 检查 milvus-lite
 python scripts/validate_stack.py --config config/settings.lite.yaml --checks milvus
 ```
 
-说明：
-- 单卡通常无法同时稳定承载 `embed + rerank + vlm` 三个服务，建议分时或多卡部署。
-- 若使用外部 API（如魔塔托管）可将本地服务改为远程端点。
-
-## 8) 端到端测试（FastAPI /ask）
-在服务启动后，可用 E2E 脚本直接验证“影像上传 -> 检索 -> 重排 -> VLM 生成”全链路：
+端到端测试：
 
 ```bash
-cd /root/autodl-tmp/Medical/Medical-RAG
-
 python scripts/e2e_test.py \
   --api-base http://127.0.0.1:9000 \
-  --image /root/autodl-tmp/Medical/VQA_data/802fe124-1b5c-11ef-b341-000066532cad.jpg \
-  --question "请结合影像和证据，给出主要异常与下一步建议。" \
+  --image /path/to/example.png \
+  --question "请结合影像和证据给出主要异常及下一步建议。" \
   --save-json /tmp/medical_rag_e2e_result.json
 ```
 
-## 推理链路说明
-1. 多路召回：对问题做查询扩展并在 Milvus 检索，使用 RRF 融合结果。
-2. 语义精排：Reranker 对候选切片重排序，筛出高置信证据。
-3. 图文联合推理：将医学影像、问题、证据一并输入 Qwen3-VL（vLLM OpenAI 接口）输出答案。
+## 配置说明
+
+常用配置文件：
+
+- `config/settings.yaml`：标准配置
+- `config/settings.lite.yaml`：本地 Milvus Lite 调试
+- `config/settings.fastapi.yaml`：FastAPI + Streamlit
+- `config/settings.e2e.yaml`：端到端验证
+
+核心模块：
+
+- `embedding.provider=api`
+- `reranker.provider=api`
+- `vlm.backend=vllm_openai`
 
 ## 安全声明
-- 系统输出仅用于科研与教学，不构成临床诊断结论。
-- 高风险病例必须由具备资质的医生完成最终判读与决策。
+
+- 项目输出仅用于科研、教学与系统验证，不构成临床诊断结论
+- 高风险病例需由具备资质的医生完成最终判读与决策
