@@ -1,0 +1,85 @@
+server:
+  port: ${SERVER_PORT:9100}
+
+spring:
+  application:
+    name: medical-agent-java
+  datasource:
+    url: ${DB_URL:jdbc:h2:file:./data/medical-agent;MODE=MySQL;DATABASE_TO_LOWER=TRUE}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+    driver-class-name: ${DB_DRIVER:org.h2.Driver}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  data:
+    redis:
+      repositories:
+        enabled: false
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2s
+  codec:
+    max-in-memory-size: ${MAX_IN_MEMORY_SIZE:25MB}
+  webflux:
+    multipart:
+      max-in-memory-size: ${MAX_FILE_SIZE:20MB}
+      max-disk-usage-per-part: ${MAX_REQUEST_SIZE:22MB}
+
+management:
+  health:
+    redis:
+      enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+medical-agent:
+  embedding:
+    base-url: ${EMBEDDING_BASE_URL:http://127.0.0.1:8001}
+    path: ${EMBEDDING_PATH:/v1/embeddings}
+    model: ${EMBEDDING_MODEL:Qwen/Qwen3-VL-Embedding-2B}
+    api-key: ${EMBEDDING_API_KEY:}
+    timeout-seconds: ${EMBEDDING_TIMEOUT_SECONDS:60}
+  reranker:
+    base-url: ${RERANKER_BASE_URL:http://127.0.0.1:8002}
+    path: ${RERANKER_PATH:/v1/rerank}
+    model: ${RERANKER_MODEL:Qwen/Qwen3-VL-Reranker-2B}
+    api-key: ${RERANKER_API_KEY:}
+    timeout-seconds: ${RERANKER_TIMEOUT_SECONDS:60}
+  vlm:
+    base-url: ${VLM_BASE_URL:http://127.0.0.1:8003}
+    path: ${VLM_PATH:/v1/chat/completions}
+    model: ${VLM_MODEL:qwen3-vl-medical}
+    api-key: ${VLM_API_KEY:}
+    timeout-seconds: ${VLM_TIMEOUT_SECONDS:120}
+  milvus:
+    enabled: ${MILVUS_ENABLED:true}
+    uri: ${MILVUS_URI:http://127.0.0.1:19530}
+    token: ${MILVUS_TOKEN:}
+    collection: ${MILVUS_COLLECTION:medical_knowledge_chunks}
+    dimension: ${EMBEDDING_DIMENSION:2048}
+  knowledge:
+    chunk-size: ${KNOWLEDGE_CHUNK_SIZE:500}
+    chunk-overlap: ${KNOWLEDGE_CHUNK_OVERLAP:80}
+  rag:
+    recall-top-k: ${RAG_RECALL_TOP_K:12}
+    sparse-top-k: ${RAG_SPARSE_TOP_K:8}
+    rerank-top-k: ${RAG_RERANK_TOP_K:4}
+    rrf-k: ${RAG_RRF_K:60}
+    bm25-k1: ${BM25_K1:1.5}
+    bm25-b: ${BM25_B:0.75}
+    hyde-enabled: ${HYDE_ENABLED:true}
+  upload:
+    max-bytes: ${MEDICAL_IMAGE_MAX_BYTES:20971520}
+  memory:
+    history-limit: ${CASE_HISTORY_LIMIT:12}
+    ttl-hours: ${CASE_MEMORY_TTL_HOURS:12}
+    brief-max-chars: ${CASE_BRIEF_MAX_CHARS:800}
+  bootstrap:
+    demo-users-enabled: ${DEMO_USERS_ENABLED:true}
+    user-password: ${DEMO_USER_PASSWORD:local-user-change-me}
+    admin-password: ${DEMO_ADMIN_PASSWORD:local-admin-change-me}

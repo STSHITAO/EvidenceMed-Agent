@@ -1,18 +1,37 @@
-__pycache__/
-*.pyc
-.pytest_cache/
-.mypy_cache/
-.ipynb_checkpoints/
+# Local secrets
+**/.env
+**/.env.local
+!**/.env.example
 
-.env
-.venv/
-venv/
+# Build and runtime output
+**/target/
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/logs/
+runtime/*
+!runtime/README.md
 
-.pids/
-logs/
+# Large model artifacts
+models/base/*
+!models/base/README.md
+models/adapters/*/
+!models/adapters/README.md
 
-data/*.db
-data/*.db.lock
-data/*_verify.db
+# Training datasets and caches
+datasets/raw/*
+datasets/cache/*
+datasets/processed/llamafactory/medvqa-images/*
+datasets/processed/llamafactory/mllm-data/*
+datasets/processed/llamafactory/metadata/*
+!datasets/**/README.md
+!datasets/processed/llamafactory/dataset_info.json
 
-.DS_Store
+# Third-party framework is restored separately before training
+training/llamafactory/
+training/runs/
+
+# Local databases
+**/*.db
+**/*.mv.db
+**/*.trace.db

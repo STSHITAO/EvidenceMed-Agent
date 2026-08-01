@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EvidenceMed 多模态医疗 Agent</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<main class="shell">
+  <header>
+    <p class="eyebrow">JAVA RAG · MULTI-AGENT HARNESS</p>
+    <h1>EvidenceMed</h1>
+    <p>上传 JPEG/PNG 医学影像并描述问题。结果仅用于教学、科研与医生辅助复核。</p>
+  </header>
+
+  <section class="panel input-panel">
+    <form id="consult-form">
+      <label for="question">咨询问题</label>
+      <textarea id="question" name="question" minlength="2" maxlength="3000" required
+                placeholder="例如：这张胸部影像中有哪些需要医生重点复核的表现？"></textarea>
+      <div class="row">
+        <label class="file-picker">选择影像<input id="image" name="image" type="file" accept="image/jpeg,image/png"></label>
+        <span id="file-name">未选择文件（影像可选）</span>
+      </div>
+      <button id="submit" type="submit">提交给医疗 Agent</button>
+    </form>
+  </section>
+
+  <section id="result" class="panel result-panel hidden" aria-live="polite">
+    <div class="result-head">
+      <h2>辅助回答</h2>
+      <span id="risk" class="risk"></span>
+    </div>
+    <div id="answer" class="answer"></div>
+    <h3>检索证据</h3>
+    <div id="evidence" class="evidence"></div>
+    <p id="trace" class="trace"></p>
+  </section>
+  <p id="error" class="error hidden" role="alert"></p>
+</main>
+<script src="/app.js"></script>
+</body>
+</html>
