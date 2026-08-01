@@ -16,6 +16,7 @@
 - [x] 阶段 4：活跃配置和 Notebook 路径已更新；历史失败训练记录、损坏 Git 元数据与临时缓存已从训练框架中分离。
 - [x] 阶段 5：Notebook/JSON/YAML、vLLM Shell、Docker Compose 和 Java Maven 构建全部验证通过。
 - [x] GitHub 仓库由 `EvidenceMed-VL` 更名为 `EvidenceMed-Agent`，并完成推送前的密钥与大文件检查。
+- [x] 重写根目录 README，以正式项目视角说明架构、能力、部署、API、训练与安全设计。
 
 ## 验证结果
 
