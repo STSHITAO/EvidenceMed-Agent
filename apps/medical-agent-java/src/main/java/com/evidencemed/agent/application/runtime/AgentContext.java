@@ -4,6 +4,8 @@ import com.evidencemed.agent.application.memory.CaseMemorySnapshot;
 import com.evidencemed.agent.application.rag.RagResult;
 import com.evidencemed.agent.domain.report.RiskLevel;
 
+import java.util.List;
+
 public class AgentContext {
     private final String traceId;
     private final String ownerId;
@@ -17,6 +19,7 @@ public class AgentContext {
     private RagResult rag = new RagResult("", java.util.List.of(), java.util.List.of());
     private RiskLevel riskLevel = RiskLevel.LOW;
     private boolean humanReviewRequired;
+    private List<String> safetyReasons = List.of();
     private String answer;
 
     public AgentContext(String traceId, String ownerId, String sessionId, String question,
@@ -46,6 +49,8 @@ public class AgentContext {
     public void setRiskLevel(RiskLevel riskLevel) { this.riskLevel = riskLevel; }
     public boolean isHumanReviewRequired() { return humanReviewRequired; }
     public void setHumanReviewRequired(boolean value) { this.humanReviewRequired = value; }
+    public List<String> getSafetyReasons() { return safetyReasons; }
+    public void setSafetyReasons(List<String> reasons) { this.safetyReasons = List.copyOf(reasons); }
     public String getAnswer() { return answer; }
     public void setAnswer(String answer) { this.answer = answer; }
 }

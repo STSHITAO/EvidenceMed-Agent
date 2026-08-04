@@ -126,7 +126,7 @@ public class MedicalAgentProperties {
     }
 
     public static class Bootstrap {
-        private boolean demoUsersEnabled = true;
+        private boolean demoUsersEnabled = false;
         private String userPassword = "local-user-change-me";
         private String adminPassword = "local-admin-change-me";
         public boolean isDemoUsersEnabled() { return demoUsersEnabled; }

@@ -3,3 +3,4 @@ data/
 .git/
 .env
 *.log
+frontend/node_modules/

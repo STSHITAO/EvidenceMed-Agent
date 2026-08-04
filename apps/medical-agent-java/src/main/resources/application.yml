@@ -80,6 +80,6 @@ medical-agent:
     ttl-hours: ${CASE_MEMORY_TTL_HOURS:12}
     brief-max-chars: ${CASE_BRIEF_MAX_CHARS:800}
   bootstrap:
-    demo-users-enabled: ${DEMO_USERS_ENABLED:true}
+    demo-users-enabled: ${DEMO_USERS_ENABLED:false}
     user-password: ${DEMO_USER_PASSWORD:local-user-change-me}
     admin-password: ${DEMO_ADMIN_PASSWORD:local-admin-change-me}

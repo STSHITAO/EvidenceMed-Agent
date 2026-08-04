@@ -83,7 +83,7 @@ public class MedicalAgentHarness {
             traces.save(trace);
             return new HarnessResponse(session.getId(), report.getId(), trace.getId(), context.getAnswer(),
                     context.getRiskLevel(), context.isHumanReviewRequired(),
-                    context.isHumanReviewRequired() ? java.util.List.of("需要人工复核") : java.util.List.of(),
+                    context.getSafetyReasons(),
                     context.getRag().evidence(), context.getRag().degradations());
         } catch (RuntimeException exception) {
             trace.finish(RunStatus.FAILED, exception.getClass().getSimpleName());
@@ -113,6 +113,9 @@ public class MedicalAgentHarness {
             if (!IMAGE_TYPES.contains(request.imageMediaType())) {
                 throw new IllegalArgumentException("影像仅支持 JPEG 或 PNG");
             }
+            if (!hasExpectedImageSignature(request.image(), request.imageMediaType())) {
+                throw new IllegalArgumentException("影像内容与声明的 JPEG/PNG 类型不一致");
+            }
         }
     }
 
@@ -141,5 +144,15 @@ public class MedicalAgentHarness {
 
     private Long imageSize(HarnessRequest request) {
         return hasImage(request) ? (long) request.image().length : null;
+    }
+
+    private boolean hasExpectedImageSignature(byte[] bytes, String mediaType) {
+        if ("image/png".equals(mediaType)) {
+            return bytes.length >= 8 && bytes[0] == (byte) 0x89 && bytes[1] == 0x50
+                    && bytes[2] == 0x4e && bytes[3] == 0x47 && bytes[4] == 0x0d
+                    && bytes[5] == 0x0a && bytes[6] == 0x1a && bytes[7] == 0x0a;
+        }
+        return bytes.length >= 3 && bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xd8
+                && bytes[2] == (byte) 0xff;
     }
 }

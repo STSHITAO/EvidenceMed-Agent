@@ -13,13 +13,16 @@ if [[ -f "${ROOT_DIR}/.env" ]]; then
 fi
 
 MODE="${1:-}"
+VLLM_HOST="${VLLM_HOST:-127.0.0.1}"
+VLLM_API_KEY="${VLLM_API_KEY:?VLLM_API_KEY must be set before starting a model service}"
 
 case "${MODE}" in
   embed)
     MODEL="${EMBED_MODEL:-/root/autodl-tmp/Qwen/Qwen/Qwen3-VL-Embedding-2B}"
     exec vllm serve "${MODEL}" \
-      --host 0.0.0.0 \
+      --host "${VLLM_HOST}" \
       --port "${EMBED_PORT:-8001}" \
+      --api-key "${VLLM_API_KEY}" \
       --task embed \
       --trust-remote-code \
       --dtype "${EMBED_DTYPE:-bfloat16}" \
@@ -31,8 +34,9 @@ case "${MODE}" in
   rerank)
     MODEL="${RERANK_MODEL:-/root/autodl-tmp/Qwen/Qwen/Qwen3-VL-Reranker-2B}"
     exec vllm serve "${MODEL}" \
-      --host 0.0.0.0 \
+      --host "${VLLM_HOST}" \
       --port "${RERANK_PORT:-8002}" \
+      --api-key "${VLLM_API_KEY}" \
       --task score \
       --trust-remote-code \
       --dtype "${RERANK_DTYPE:-bfloat16}" \
@@ -48,8 +52,9 @@ case "${MODE}" in
     [[ -n "${LIMIT_MM_PER_PROMPT}" ]] || LIMIT_MM_PER_PROMPT='{"image":1}'
     [[ -n "${MM_PROCESSOR_KWARGS}" ]] || MM_PROCESSOR_KWARGS='{"max_pixels":262144}'
     exec vllm serve "${MODEL}" \
-      --host 0.0.0.0 \
+      --host "${VLLM_HOST}" \
       --port "${VLM_PORT:-8003}" \
+      --api-key "${VLLM_API_KEY}" \
       --trust-remote-code \
       --dtype "${VLM_DTYPE:-bfloat16}" \
       --max-model-len "${VLM_MAX_MODEL_LEN:-2048}" \

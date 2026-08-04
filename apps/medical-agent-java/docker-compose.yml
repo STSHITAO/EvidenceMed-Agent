@@ -39,8 +39,8 @@ services:
   minio:
     image: minio/minio:RELEASE.2025-04-22T22-12-26Z
     environment:
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     command: minio server /minio_data --console-address :9001
     volumes:
       - minio_data:/minio_data
@@ -54,9 +54,6 @@ services:
     depends_on:
       - etcd
       - minio
-    ports:
-      - "19530:19530"
-      - "9091:9091"
     volumes:
       - milvus_data:/var/lib/milvus
 
@@ -76,10 +73,11 @@ services:
       EMBEDDING_MODEL: ${EMBEDDING_MODEL}
       RERANKER_MODEL: ${RERANKER_MODEL}
       VLM_MODEL: ${VLM_MODEL}
-      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
-      RERANKER_API_KEY: ${RERANKER_API_KEY:-}
-      VLM_API_KEY: ${VLM_API_KEY:-}
+      EMBEDDING_API_KEY: ${VLLM_API_KEY}
+      RERANKER_API_KEY: ${VLLM_API_KEY}
+      VLM_API_KEY: ${VLLM_API_KEY}
       EMBEDDING_DIMENSION: ${EMBEDDING_DIMENSION:-2048}
+      MILVUS_TOKEN: ${MILVUS_TOKEN:-}
       DEMO_USERS_ENABLED: ${DEMO_USERS_ENABLED:-false}
       DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD}
       DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD}
