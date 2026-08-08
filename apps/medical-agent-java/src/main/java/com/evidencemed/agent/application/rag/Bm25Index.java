@@ -66,7 +66,8 @@ public class Bm25Index {
             if (score > 0.0) {
                 KnowledgeChunk chunk = document.chunk();
                 results.add(new RetrievedEvidence(chunk.getId(), chunk.getDocumentId(), chunk.getSource(),
-                        chunk.getChunkIndex(), chunk.getContent(), chunk.getModality(), score, "bm25"));
+                        chunk.getChunkIndex(), chunk.getContent(), chunk.getModality(), score, "bm25",
+                        chunk.getSectionPath(), chunk.getPageFrom(), chunk.getPageTo(), chunk.getObjectType()));
             }
         }
         return results.stream()

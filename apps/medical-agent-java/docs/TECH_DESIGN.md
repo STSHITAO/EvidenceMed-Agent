@@ -18,6 +18,51 @@ Web UI / REST → Spring Security → ConsultationController → MedicalAgentHar
 
 所有咨询都通过 `MedicalAgentHarness`，Controller 不直接调用模型。Java 是唯一的业务与 RAG 实现；Python 服务仅为三个无状态 vLLM 端点提供启动契约。
 
+## 结构化 PDF 解析
+
+PDF 入库采用 `PDF → PageProfile → DocumentElement → SectionTree → KnowledgeChunk` 五层模型，避免在解析入口丢失版面与来源信息。
+
+```text
+Upload validation / SHA-256 deduplication
+                    ↓
+PDFBox page preflight: text quality / image coverage / page geometry
+                    ↓
+Position-aware extraction ── low-quality page ──→ OcrEngine
+                    ↓
+Header/footer cleanup + reading-order recovery
+                    ↓
+Heading / paragraph / table / figure / caption classification
+                    ↓
+Cross-page paragraph/table/caption merge
+                    ↓
+Section path assignment + semantic object-aware chunking
+                    ↓
+MySQL locator metadata + BM25 + Milvus
+```
+
+### 解析边界
+
+- `DocumentTextExtractor` 返回 `ParsedDocument`，而不是不可追踪的全文字符串。
+- `PageProfile` 记录页宽高、文本字符数、图片数、文本层是否可靠、是否使用 OCR 及质量分。
+- `DocumentElement` 记录对象类型、起止页、bbox、章节路径、正文、关联对象和解析来源。
+- `PdfOcrEngine` 是可替换端口。默认关闭；启用后由 Java 渲染指定页面并调用受控 PaddleOCR HTTP 服务，禁止整本无差别 OCR。
+- PDFBox 负责文本位置、字体和图片区域；表格识别使用行间距、列锚点与连续行结构启发式，并保留 Markdown 行列结果。
+
+### 阅读顺序与清洗
+
+页面先按 y 轴形成视觉行，再依据页面中线、列锚点和整宽对象划分阅读区域。普通单栏按 `(y, x)` 排序；双栏区域按左栏后右栏排序；标题、表格和整宽内容作为区域分隔符。页眉页脚通过跨页重复度、边缘位置和页码模式联合判断，医学单位、上下标文本和专业标点不参与激进替换。
+
+### 跨页与章节恢复
+
+- 上一页正文没有终止标点、下一页首对象不是标题/图注/表注时合并段落。
+- 相邻表格列数一致、列锚点近似或出现重复表头时合并，并删除重复表头。
+- 图像与当前页下方或下一页顶部图注按距离和编号绑定。
+- 标题根据编号模式、字体相对大小和长度推断层级；对象保存完整 `sectionPath`。
+
+### 持久化与引用
+
+`KnowledgeChunk` 除正文外保存 `pageFrom/pageTo`、`objectType`、`sectionPath`、`boundingBoxes`、`parserVersion` 和 `qualityScore`。Embedding 文本带章节与对象语义，BM25 索引正文；返回给 Agent 的证据包含稳定 locator，从而支持“文件—章节—页码—区域”四级回溯。
+
 ## 动态编排
 
 Coordinator 不再根据 Agent 名称排序，也不存在固定五段循环。`AgentTask` 声明任务类型、执行者类型、所需能力、依赖、优先级和轮次；黑板维护 `OPEN → CLAIMED → COMPLETED/FAILED` 状态，并把创建、认领、完成、失败和产出物摘要保存为协作事件。

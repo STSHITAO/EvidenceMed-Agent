@@ -30,6 +30,18 @@ public class KnowledgeDocument extends BaseEntity {
     @Column(length = 500)
     private String failureReason;
 
+    @Column(nullable = false)
+    private int pageCount = 1;
+
+    @Column(nullable = false, length = 64)
+    private String parserVersion = "unknown";
+
+    @Column(nullable = false)
+    private double qualityScore = 1.0;
+
+    @Column(length = 1000)
+    private String parseWarnings;
+
     protected KnowledgeDocument() {}
 
     public KnowledgeDocument(String fileName, String mediaType, String sha256, long sizeBytes) {
@@ -39,7 +51,16 @@ public class KnowledgeDocument extends BaseEntity {
         this.sizeBytes = sizeBytes;
     }
 
-    public void indexed() { this.status = KnowledgeStatus.INDEXED; this.failureReason = null; }
+    public void indexed() { indexed(1, "legacy", 1.0, ""); }
+    public void indexed(int pageCount, String parserVersion, double qualityScore, String warnings) {
+        this.status = KnowledgeStatus.INDEXED;
+        this.failureReason = null;
+        this.pageCount = Math.max(1, pageCount);
+        this.parserVersion = parserVersion == null ? "unknown" : parserVersion;
+        this.qualityScore = Math.max(0.0, Math.min(1.0, qualityScore));
+        this.parseWarnings = warnings == null || warnings.isBlank()
+                ? null : warnings.substring(0, Math.min(1000, warnings.length()));
+    }
     public void failed(String reason) { this.status = KnowledgeStatus.FAILED; this.failureReason = reason; }
     public String getFileName() { return fileName; }
     public String getMediaType() { return mediaType; }
@@ -47,4 +68,8 @@ public class KnowledgeDocument extends BaseEntity {
     public long getSizeBytes() { return sizeBytes; }
     public KnowledgeStatus getStatus() { return status; }
     public String getFailureReason() { return failureReason; }
+    public int getPageCount() { return pageCount; }
+    public String getParserVersion() { return parserVersion; }
+    public double getQualityScore() { return qualityScore; }
+    public String getParseWarnings() { return parseWarnings; }
 }

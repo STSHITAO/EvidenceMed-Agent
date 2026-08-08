@@ -4,6 +4,12 @@ EvidenceMed 的业务主工程：提供经过 Basic Auth 保护的 Vue 3 + TypeS
 
 Agent runtime 不使用固定执行顺序。Coordinator 将任务写入共享黑板，根据依赖和能力动态调度：`CaseMemoryService`、`AgentRuntimePreprocessor` 与 `JavaMedicalRagService` 执行确定性工作；`EvidencePlanningAgent`、`MedicalReasoningAgent` 和 `SafetyCriticAgent` 只处理需要自主规划、生成或批判审查的任务。同一轮无依赖任务通过受控线程池并行执行，结果由 Coordinator 串行合并，避免共享上下文竞态。
 
+## 结构化 PDF 入库
+
+知识库上传 PDF 后，Java 使用 PDFBox 完成页面预判、坐标文本提取、图片区域定位、页眉页脚清理、单双栏顺序恢复、表格与图注识别、跨页对象合并和章节感知切块。低质量文本页按需调用 PaddleOCR HTTP 端点，单页 OCR 故障不会阻断其他可解析页面。知识块保存章节、页码、bbox、对象类型、解析版本与质量分，并将这些定位信息传给医学推理 Agent。
+
+完整流程、OCR 契约和配置见 [docs/PDF_INGESTION.md](docs/PDF_INGESTION.md)。
+
 ## 本地运行
 
 ```powershell

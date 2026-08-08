@@ -18,6 +18,10 @@ Spring Boot Web UI + API（认证、RAG、审计与安全门控）
 
 Java Agent runtime 采用共享任务黑板与能力调度：病例记忆、规则路由和 RAG 执行是普通系统任务，医学推理、证据检索规划和安全审查才由专业 Agent 认领。Coordinator 根据依赖动态派生任务，同一轮无依赖的系统任务受控并行；不存在按 Agent 名称硬编码的固定流水线。
 
+## 医学知识入库
+
+Java 逐页解析医学 PDF 的文本坐标、字体和图片区域，按页面质量选择原生文本或 PaddleOCR 回退，并恢复页眉页脚、单双栏阅读顺序、章节、表格、图片与图注。跨页段落、续表和图注完成合并后再进行对象感知切块；检索证据保留文件、章节、页码、对象类型与 bbox 定位。详见 [医学 PDF 结构化入库](apps/medical-agent-java/docs/PDF_INGESTION.md)。
+
 ## 安全边界
 
 - 原始影像只用于单次请求，不写入数据库、Redis、日志或 trace。

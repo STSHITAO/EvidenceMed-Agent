@@ -75,11 +75,41 @@ public class MedicalAgentProperties {
     public static class Knowledge {
         private int chunkSize = 500;
         private int chunkOverlap = 80;
+        private final Pdf pdf = new Pdf();
 
         public int getChunkSize() { return chunkSize; }
         public void setChunkSize(int chunkSize) { this.chunkSize = chunkSize; }
         public int getChunkOverlap() { return chunkOverlap; }
         public void setChunkOverlap(int chunkOverlap) { this.chunkOverlap = chunkOverlap; }
+        public Pdf getPdf() { return pdf; }
+    }
+
+    public static class Pdf {
+        private int maxPages = 500;
+        private int minTextCharacters = 40;
+        private int renderDpi = 180;
+        private boolean ocrEnabled = false;
+        private String ocrBaseUrl = "http://127.0.0.1:8010";
+        private String ocrPath = "/v1/ocr";
+        private String ocrApiKey = "";
+        private int ocrTimeoutSeconds = 60;
+
+        public int getMaxPages() { return maxPages; }
+        public void setMaxPages(int maxPages) { this.maxPages = maxPages; }
+        public int getMinTextCharacters() { return minTextCharacters; }
+        public void setMinTextCharacters(int minTextCharacters) { this.minTextCharacters = minTextCharacters; }
+        public int getRenderDpi() { return renderDpi; }
+        public void setRenderDpi(int renderDpi) { this.renderDpi = renderDpi; }
+        public boolean isOcrEnabled() { return ocrEnabled; }
+        public void setOcrEnabled(boolean ocrEnabled) { this.ocrEnabled = ocrEnabled; }
+        public String getOcrBaseUrl() { return ocrBaseUrl; }
+        public void setOcrBaseUrl(String ocrBaseUrl) { this.ocrBaseUrl = ocrBaseUrl; }
+        public String getOcrPath() { return ocrPath; }
+        public void setOcrPath(String ocrPath) { this.ocrPath = ocrPath; }
+        public String getOcrApiKey() { return ocrApiKey; }
+        public void setOcrApiKey(String ocrApiKey) { this.ocrApiKey = ocrApiKey; }
+        public int getOcrTimeoutSeconds() { return ocrTimeoutSeconds; }
+        public void setOcrTimeoutSeconds(int ocrTimeoutSeconds) { this.ocrTimeoutSeconds = ocrTimeoutSeconds; }
     }
 
     public static class Rag {

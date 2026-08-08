@@ -82,7 +82,17 @@ public class MedicalReasoningAgent implements MedicalAgent {
         String content = item.content() == null ? "" : item.content();
         content = content.replace("</evidence>", "&lt;/evidence&gt;");
         if (content.length() > 1400) content = content.substring(0, 1400) + "…";
-        return "<evidence id=\"E" + index + "\" source=\"" + item.source() + "\">\n"
+        String pages = item.pageFrom() == item.pageTo() ? String.valueOf(item.pageFrom())
+                : item.pageFrom() + "-" + item.pageTo();
+        return "<evidence id=\"E" + index + "\" source=\"" + attribute(item.source())
+                + "\" section=\"" + attribute(item.sectionPath()) + "\" pages=\"" + pages
+                + "\" type=\"" + attribute(item.objectType()) + "\">\n"
                 + content + "\n</evidence>";
+    }
+
+    private String attribute(String value) {
+        if (value == null) return "";
+        return value.replace("&", "&amp;").replace("\"", "&quot;")
+                .replace("<", "&lt;").replace(">", "&gt;");
     }
 }

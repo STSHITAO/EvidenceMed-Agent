@@ -1,6 +1,7 @@
 package com.evidencemed.agent.infrastructure.document;
 
 import com.evidencemed.agent.application.rag.DocumentTextExtractor;
+import com.evidencemed.agent.application.rag.document.ParsedDocument;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -16,11 +17,11 @@ public class PlainTextExtractor implements DocumentTextExtractor {
     }
 
     @Override
-    public String extract(byte[] content) {
+    public ParsedDocument extract(byte[] content) {
         String text = new String(content, StandardCharsets.UTF_8).replace("\u0000", "").strip();
         if (text.isBlank()) {
             throw new IllegalArgumentException("知识文件内容为空");
         }
-        return text;
+        return ParsedDocument.plainText(text);
     }
 }

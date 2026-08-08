@@ -76,7 +76,8 @@ public class JavaMedicalRagService {
             return hits.stream().filter(hit -> found.containsKey(hit.chunkId())).map(hit -> {
                 KnowledgeChunk chunk = found.get(hit.chunkId());
                 return new RetrievedEvidence(chunk.getId(), chunk.getDocumentId(), chunk.getSource(),
-                        chunk.getChunkIndex(), chunk.getContent(), chunk.getModality(), hit.score(), "milvus");
+                        chunk.getChunkIndex(), chunk.getContent(), chunk.getModality(), hit.score(), "milvus",
+                        chunk.getSectionPath(), chunk.getPageFrom(), chunk.getPageTo(), chunk.getObjectType());
             }).toList();
         } catch (RuntimeException exception) {
             degradations.add("DENSE_RETRIEVAL_UNAVAILABLE");

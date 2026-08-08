@@ -65,6 +65,15 @@ medical-agent:
   knowledge:
     chunk-size: ${KNOWLEDGE_CHUNK_SIZE:500}
     chunk-overlap: ${KNOWLEDGE_CHUNK_OVERLAP:80}
+    pdf:
+      max-pages: ${PDF_MAX_PAGES:500}
+      min-text-characters: ${PDF_MIN_TEXT_CHARACTERS:40}
+      render-dpi: ${PDF_RENDER_DPI:180}
+      ocr-enabled: ${PADDLE_OCR_ENABLED:false}
+      ocr-base-url: ${PADDLE_OCR_BASE_URL:http://127.0.0.1:8010}
+      ocr-path: ${PADDLE_OCR_PATH:/v1/ocr}
+      ocr-api-key: ${PADDLE_OCR_API_KEY:}
+      ocr-timeout-seconds: ${PADDLE_OCR_TIMEOUT_SECONDS:60}
   rag:
     recall-top-k: ${RAG_RECALL_TOP_K:12}
     sparse-top-k: ${RAG_SPARSE_TOP_K:8}

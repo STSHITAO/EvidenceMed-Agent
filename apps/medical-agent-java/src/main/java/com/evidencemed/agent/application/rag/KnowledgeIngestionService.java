@@ -1,6 +1,7 @@
 package com.evidencemed.agent.application.rag;
 
 import com.evidencemed.agent.application.model.EmbeddingModel;
+import com.evidencemed.agent.application.rag.document.ParsedDocument;
 import com.evidencemed.agent.config.MedicalAgentProperties;
 import com.evidencemed.agent.domain.knowledge.KnowledgeChunk;
 import com.evidencemed.agent.domain.knowledge.KnowledgeDocument;
@@ -60,13 +61,17 @@ public class KnowledgeIngestionService {
         KnowledgeDocument document = documents.save(new KnowledgeDocument(fileName,
                 mediaType == null ? "application/octet-stream" : mediaType, hash, content.length));
         try {
-            List<TextChunker.ChunkDraft> drafts = chunker.chunk(extractor.extract(content));
+            ParsedDocument parsed = extractor.extract(content);
+            List<TextChunker.ChunkDraft> drafts = chunker.chunk(parsed);
             if (drafts.isEmpty()) throw new IllegalArgumentException("知识文件没有可索引文本");
             List<KnowledgeChunk> saved = chunks.saveAll(drafts.stream()
                     .map(item -> new KnowledgeChunk(document.getId(), item.ordinal(), fileName,
-                            item.sectionTitle(), item.content())).toList());
+                            item.sectionTitle(), item.content(), item.pageFrom(), item.pageTo(),
+                            item.objectType(), item.sectionPath(), item.boundingBoxes(),
+                            item.parserVersion(), item.qualityScore())).toList());
             indexVectors(saved);
-            document.indexed();
+            document.indexed(parsed.pageCount(), parsed.parserVersion(), parsed.qualityScore(),
+                    String.join(",", parsed.warnings()));
             documents.save(document);
             bm25.rebuild(chunks.findAll());
             return new KnowledgeIngestionResult(document.getId(), document.getStatus().name(), saved.size(), false);
@@ -84,7 +89,7 @@ public class KnowledgeIngestionService {
             List<KnowledgeChunk> batch = saved.subList(start, Math.min(saved.size(), start + BATCH_SIZE));
             try {
                 List<List<Float>> values = embeddingModel.embedTexts(
-                        batch.stream().map(KnowledgeChunk::getContent).toList());
+                        batch.stream().map(KnowledgeChunk::embeddingContent).toList());
                 if (values.size() != batch.size()) throw new IllegalStateException("Embedding 返回数量不一致");
                 List<VectorStore.VectorRecord> records = new ArrayList<>();
                 for (int i = 0; i < batch.size(); i++) {
