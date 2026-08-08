@@ -2,6 +2,8 @@
 
 EvidenceMed 的业务主工程：提供经过 Basic Auth 保护的 Vue 3 + TypeScript 浏览器工作台与 REST API，并在 Java 内完成病例会话、RAG、Agent 编排、安全审查和审计。
 
+Agent runtime 不使用固定执行顺序。Coordinator 将任务写入共享黑板，根据依赖和能力动态调度：`CaseMemoryService`、`AgentRuntimePreprocessor` 与 `JavaMedicalRagService` 执行确定性工作；`EvidencePlanningAgent`、`MedicalReasoningAgent` 和 `SafetyCriticAgent` 只处理需要自主规划、生成或批判审查的任务。同一轮无依赖任务通过受控线程池并行执行，结果由 Coordinator 串行合并，避免共享上下文竞态。
+
 ## 本地运行
 
 ```powershell
@@ -24,6 +26,7 @@ mvn spring-boot:run
 - 病例上下文在 Redis 中以 TTL 缓存；由部署环境负责网络隔离和加密。
 - 证据、病历和用户输入被标记为非可信提示词内容。
 - `HIGH` 与 `EMERGENCY` 结果会返回人工复核状态而不是模型草稿。
+- 急症红旗在模型调用前短路；安全审查不通过会动态创建修订任务，最多修订两次后转人工复核。
 
 运行验证：
 

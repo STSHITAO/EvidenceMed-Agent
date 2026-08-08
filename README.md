@@ -16,6 +16,8 @@ Spring Boot Web UI + API（认证、RAG、审计与安全门控）
 - `apps/medical-vllm-service`：仅提供三个无状态模型推理端点；不提供 RAG、病例或 Web API。
 - `models/`、`datasets/`、`training/`：分别存放模型、训练数据与训练工具，均不提交敏感或大型产物。
 
+Java Agent runtime 采用共享任务黑板与能力调度：病例记忆、规则路由和 RAG 执行是普通系统任务，医学推理、证据检索规划和安全审查才由专业 Agent 认领。Coordinator 根据依赖动态派生任务，同一轮无依赖的系统任务受控并行；不存在按 Agent 名称硬编码的固定流水线。
+
 ## 安全边界
 
 - 原始影像只用于单次请求，不写入数据库、Redis、日志或 trace。

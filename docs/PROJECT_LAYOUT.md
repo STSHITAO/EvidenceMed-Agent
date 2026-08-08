@@ -12,4 +12,4 @@ EvidenceMed-Agent/
 └── docs/                        # 架构、进度和数据说明
 ```
 
-`medical-agent-java` 是唯一业务工程，前端源代码位于 `frontend/`，由 Vite 构建后随 JAR 发布；它包含身份认证、病例上下文、Java RAG、人工复核门控和审计记录。`medical-vllm-service` 不保存业务数据，也不包含 HTTP 业务 API、RAG 或向量数据库代码，只保留模型启动脚本与 vLLM 依赖。
+`medical-agent-java` 是唯一业务工程，前端源代码位于 `frontend/`，由 Vite 构建后随 JAR 发布；它包含身份认证、病例上下文、Java RAG、动态 Agent runtime、人工复核门控和审计记录。动态 runtime 位于 `application/runtime/`：任务模型和共享黑板在该目录，真正进行自主推理的实现位于 `runtime/agents/`；记忆加载、临床路由和 RAG 检索仍是普通 Java Service。`medical-vllm-service` 不保存业务数据，也不包含 HTTP 业务 API、RAG 或向量数据库代码，只保留模型启动脚本与 vLLM 依赖。

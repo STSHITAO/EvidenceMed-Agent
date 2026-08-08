@@ -17,10 +17,15 @@ public class AgentContext {
     private CaseMemorySnapshot memory = CaseMemorySnapshot.empty();
     private ClinicalRoute route = ClinicalRoute.GENERAL;
     private RagResult rag = new RagResult("", java.util.List.of(), java.util.List.of());
+    private boolean evidenceRequired = true;
+    private String plannedRetrievalQuery;
     private RiskLevel riskLevel = RiskLevel.LOW;
     private boolean humanReviewRequired;
     private List<String> safetyReasons = List.of();
     private String answer;
+    private boolean safetyApproved;
+    private boolean revisionRequired;
+    private int revisionCount;
 
     public AgentContext(String traceId, String ownerId, String sessionId, String question,
                         byte[] image, String imageMediaType, CollaborationBlackboard blackboard) {
@@ -45,6 +50,10 @@ public class AgentContext {
     public void setRoute(ClinicalRoute route) { this.route = route; }
     public RagResult getRag() { return rag; }
     public void setRag(RagResult rag) { this.rag = rag; }
+    public boolean isEvidenceRequired() { return evidenceRequired; }
+    public void setEvidenceRequired(boolean value) { evidenceRequired = value; }
+    public String getPlannedRetrievalQuery() { return plannedRetrievalQuery; }
+    public void setPlannedRetrievalQuery(String value) { plannedRetrievalQuery = value; }
     public RiskLevel getRiskLevel() { return riskLevel; }
     public void setRiskLevel(RiskLevel riskLevel) { this.riskLevel = riskLevel; }
     public boolean isHumanReviewRequired() { return humanReviewRequired; }
@@ -53,4 +62,16 @@ public class AgentContext {
     public void setSafetyReasons(List<String> reasons) { this.safetyReasons = List.copyOf(reasons); }
     public String getAnswer() { return answer; }
     public void setAnswer(String answer) { this.answer = answer; }
+    public boolean isSafetyApproved() { return safetyApproved; }
+    public void setSafetyApproved(boolean value) { safetyApproved = value; }
+    public boolean isRevisionRequired() { return revisionRequired; }
+    public void setRevisionRequired(boolean value) { revisionRequired = value; }
+    public int getRevisionCount() { return revisionCount; }
+    public void incrementRevisionCount() { revisionCount++; }
+
+    public AgentRuntimeView snapshot() {
+        return new AgentRuntimeView(traceId, ownerId, sessionId, question, image, imageMediaType,
+                memory, route, rag, evidenceRequired, plannedRetrievalQuery, riskLevel,
+                humanReviewRequired, safetyReasons, answer, revisionCount);
+    }
 }
